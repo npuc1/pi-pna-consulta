@@ -8,7 +8,7 @@ library(shinyjs)
 library(DT)
 library(spsComps)
 library(shinythemes)
-
+#Hola
 # cargar bases
 
 base_acciones <- read.xlsx("base_consulta.xlsx", 1)
