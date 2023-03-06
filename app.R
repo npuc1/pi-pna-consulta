@@ -9,6 +9,8 @@ library(DT)
 library(spsComps)
 library(shinythemes)
 
+# cargar bases
+
 base_acciones <- read.xlsx("base_consulta.xlsx", 1)
 
 base_expandida <- read.xlsx("base_expandida.xlsx", 1) %>% 
