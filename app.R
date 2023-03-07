@@ -8,6 +8,7 @@ library(shinyjs)
 library(DT)
 library(spsComps)
 library(shinythemes)
+
 #Hola
 # cargar bases
 
@@ -73,7 +74,7 @@ ui <- navbarPage("Tablero de Implementación - Consulta",
                                 width = 9,
                                 textOutput("result"),
                                 hr(),
-                                tabPanel("Consulta gráfica", plotlyOutput("resultsGraph")),
+                                tabPanel("Consulta gráfica", htmlOutput("treeMap")),
                                 downloadButton("downloadData", "Descargar Datos")
                               )
                             )
@@ -139,36 +140,20 @@ server <- function(input, output, session) {
     paste("Número de acciones reportadas: ", nrow(distinct(filteredData_accion(), Acción.reportada)))
   })
   
-  # Output the graph
-  output$resultsGraph <- renderPlotly({
-    total_count <- nrow(distinct(base_acciones))
-    filtered_count <- nrow(filteredData())
-    percentage <- (filtered_count/total_count)*100
-    
-    # Datos agrupados
-    
-    grouped_data <- base_acciones %>% 
-      drop_na(Temática) %>% 
-      group_by(Temática)
-    
-    filtered_grouped_data <- group_by(filteredData(), Temática)
-    
-    # Porcentaje resultados sub
-    
-    subcategory_percentages <- filtered_grouped_data %>% 
-      summarize(count = n()) %>% 
-      mutate(percentage = (count / nrow(grouped_data)) * 100)
-    
-    # Plotly
-    
-    plot_ly(x = c("Resultados"), 
-            y = subcategory_percentages$percentage, 
-            type = "bar",
-            name = subcategory_percentages$Temática,
-            hoverinfo = paste(round(subcategory_percentages$percentage, 2), "%")) %>%
-      layout(barmode = "stack",
-             title = paste0("Porcentaje de resultados por subcategoría: ", round(percentage, 2), "%")) %>% 
-      add_bars(y = subcategory_percentages$percentage)
+  # Treemap output
+  
+  output$treeMap <- renderUI({
+    d3tree2(treemap(base_expandida,
+                    index = c("Plazo", "Actores", "No.Estrategia", "Acción.reportada"),
+                    vSize = "contiene_accion",
+                    type = "index",
+                    palette = "Set2",
+                    align.labels = list(
+                      c("center", "center"), 
+                      c("right", "bottom")
+                     )  
+    ),
+    rootname = "Acciones reportadas")
   })
   
   # Table data
