@@ -8,6 +8,9 @@ library(shinyjs)
 library(DT)
 library(spsComps)
 library(shinythemes)
+library(treemap)
+library(d3treeR)
+library(spsComps)
 
 #Hola
 # cargar bases
@@ -15,7 +18,8 @@ library(shinythemes)
 base_acciones <- read.xlsx("base_consulta.xlsx", 1)
 
 base_expandida <- read.xlsx("base_expandida.xlsx", 1) %>% 
-  filter(contiene_accion == 1)
+  filter(contiene_accion == 1) %>% 
+  mutate(lab_est = str_c("Estrategia ", No.Estrategia)) # labels para treeMap
 
 base_reporte <- read.xlsx("base_expandida.xlsx", 1)
 
@@ -63,19 +67,15 @@ ui <- navbarPage("Tablero de Implementación - Consulta",
                             sidebarLayout(
                               sidebarPanel(
                                 width = 3,
-                                selectInput("filter1", "Actores:", c("Todos", unique(base_acciones$Actores))),
-                                selectInput("filter5", "Estrategia:", estrategias),
-                                selectInput("filter6", "Línea de Acción:", c("Todos", unique(base_acciones$No.Línea.de.Acción))),
+                                selectInput("filtro_act_tree", "Actores:", c("Todos", unique(base_acciones$Actores))),
+                                selectInput("filtro_pla_tree", "Plazos", c("Todos", "Corto", "Mediano", "Largo")),
                                 infoBtn2('notWorking') %>% 
                                   bsTooltip("La gráfica cuenta el número de acciones únicas reportadas por los actores, por lo que los totales pueden variar si el actor reportó la misma acción en diferentes líneas.",
                                             opacity = 0.7)
                               ),
                               mainPanel(
                                 width = 9,
-                                textOutput("result"),
-                                hr(),
-                                tabPanel("Consulta gráfica", htmlOutput("treeMap")),
-                                downloadButton("downloadData", "Descargar Datos")
+                                tabPanel("Consulta gráfica", htmlOutput("treeMap"))
                               )
                             )
                           )),
@@ -108,52 +108,43 @@ ui <- navbarPage("Tablero de Implementación - Consulta",
 
 server <- function(input, output, session) {
   
-  # Create a reactive expression for the filtered data (nivel: etiqueta)
-  
-  filteredData <- reactive({
-    if (input$filter1 == "Todos" & input$filter5 == "Todas" & input$filter6 == "Todos") {
-      return(base_acciones)
-    } else {
-      base_acciones %>% 
-        filter((input$filter1 == "Todos" | base_acciones$Actores == input$filter1) &
-                 (input$filter5 == "Todas" | base_acciones$No.Estrategia == input$filter5) &
-                 (input$filter6 == "Todos" | base_acciones$No.Línea.de.Acción == input$filter6))
-    }
-  })
-  
-  # Create a reactive expression for the filtered data (nivel: acción reportada)
-  
-  filteredData_accion <- reactive({
-    if (input$filter1 == "Todos" & input$filter5 == "Todas" & input$filter6 == "Todos") {
-      return(base_expandida)
-    } else {
-      base_expandida %>% 
-        filter((input$filter1 == "Todos" | base_expandida$Actores == input$filter1) &
-                 (input$filter5 == "Todas" | base_expandida$No.Estrategia == input$filter5) &
-                 (input$filter6 == "Todos" | base_expandida$No.Línea.de.Acción == input$filter6))
-    }
-  })
-  
-  # Output the number of results
-  
-  output$result <- renderText({
-    paste("Número de acciones reportadas: ", nrow(distinct(filteredData_accion(), Acción.reportada)))
-  })
-  
   # Treemap output
   
-  output$treeMap <- renderUI({
-    d3tree2(treemap(base_expandida,
-                    index = c("Plazo", "Actores", "No.Estrategia", "Acción.reportada"),
-                    vSize = "contiene_accion",
-                    type = "index",
-                    palette = "Set2",
-                    align.labels = list(
-                      c("center", "center"), 
-                      c("right", "bottom")
-                     )  
-    ),
-    rootname = "Acciones reportadas")
+  observeEvent(input$filtro_act_tree, {
+    
+    if(input$filtro_act_tree == "Todos") {
+      
+      output$treeMap <- renderUI({
+        d3tree2(treemap(base_expandida,
+                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        vSize = "contiene_accion",
+                        type = "index",
+                        palette = "Set2",
+                        align.labels = list(
+                          c("center", "center"), 
+                          c("right", "bottom"))
+        ),
+        rootname = "Acciones reportadas")
+      })
+      
+    } else {
+      
+      output$treeMap <- renderUI({
+        d3tree2(treemap(base_expandida %>% 
+                          filter(Actores == input$filtro_act_tree),
+                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        vSize = "contiene_accion",
+                        type = "index",
+                        palette = "Set2",
+                        align.labels = list(
+                          c("center", "center"), 
+                          c("right", "bottom"))
+        ),
+        rootname = "Acciones reportadas")
+      })
+      
+    }
+    
   })
   
   # Table data
@@ -255,7 +246,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Output tabla instituciones
+  # output tabla instituciones
   
   output$dataTableInst <- renderDataTable({
     
@@ -312,7 +303,7 @@ server <- function(input, output, session) {
                              columnDefs = list(list(className = 'dt-center', targets = 2:6))))
   })
   
-  # Preview data
+  # output tabla lista acciones
   
   previewData <- reactive({
     
@@ -342,34 +333,6 @@ server <- function(input, output, session) {
     previewData()
   }, options = list(pageLength = 5,
                     language = list(url = "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Spanish.json")))
-  
-  
-  # Download graph data when the download button is clicked
-  
-  output$downloadData <- downloadHandler(
-    filename = function() {
-      if (input$filter1 != "Todos") {
-        file_name <- paste("consulta_implementación",input$filter1, "_", sep="_")
-      }
-      else {
-        file_name <- ""
-      }
-      if (file_name == "") {
-        file_name <- "consulta_implementación"
-      }
-      paste(file_name, Sys.Date(), ".csv", sep="")
-    },
-    content = function(file) {
-      write.csv(filteredData(), file, row.names = FALSE)
-    },
-    contentType = "text/csv"
-  )
-  
-  # Observe the graph download button
-  
-  observeEvent(input$download, {
-    downloadHandler(output$downloadData)
-  })
   
   # Download table data
   
