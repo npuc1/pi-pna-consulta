@@ -65,10 +65,10 @@ ui <- navbarPage("Tablero de Implementación - Consulta",
                               sidebarPanel(
                                 width = 3,
                                 selectInput("filtro_act_tree", "Actores:", c("Todos", unique(base_expandida$Actores))),
-                                selectInput("filtro_pla_tree", "Plazos", c("Todos", "Corto", "Mediano", "Largo")),
-                                infoBtn2('notWorking') %>% 
-                                  bsTooltip("La gráfica cuenta el número de acciones únicas reportadas por los actores, por lo que los totales pueden variar si el actor reportó la misma acción en diferentes líneas.",
-                                            opacity = 0.7)
+                                selectInput("filtro_pla_tree", "Plazos", c("Todos", "Corto", "Mediano", "Largo")) #,
+                                # infoBtn2('notWorking') %>% 
+                                  # bsTooltip("La gráfica cuenta el número de acciones únicas reportadas por los actores, por lo que los totales pueden variar si el actor reportó la misma acción en diferentes líneas.",
+                                            # opacity = 0.7)
                               ),
                               mainPanel(
                                 width = 9,
