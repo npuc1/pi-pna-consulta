@@ -79,7 +79,10 @@ server <- function(input, output) {
       output$treeMap <- renderUI({
         
         validate(
-          need(nrow(base_expandida) > 0, "blabla")
+          need(nrow(base_expandida %>% 
+                      filter(Plazo == input$filtro_pla_tree) %>% 
+                      filter(Actores == input$filtro_act_tree)) > 0, 
+               paste(input$filtro_act_tree, "no reportó acciones de", tolower(input$filtro_pla_tree), "plazo."))
         )
           
         
