@@ -7,7 +7,8 @@ library(spsComps)
 
 base_expandida <- read.xlsx("base_expandida.xlsx", 1) %>% 
   filter(contiene_accion == 1) %>% 
-  mutate(lab_est = str_c("Estrategia ", No.Estrategia))
+  mutate(lab_est = str_c("Estrategia ", No.Estrategia)) %>% 
+  mutate(lab_ver = "Ver acciones")
 
 ui <- fluidPage(
   sidebarLayout(
@@ -31,15 +32,14 @@ server <- function(input, output) {
       
       output$treeMap <- renderUI({
         d3tree2(treemap(base_expandida,
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Plazo", "Actores", "lab_est", "lab_ver"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
                         align.labels = list(
                           c("center", "center"), 
-                          c("right", "bottom"))
-        ),
-        rootname = "Acciones reportadas")
+                          c("right", "bottom"))),
+                rootname = "Acciones reportadas")
       })
       
     } else if(input$filtro_act_tree != "Todos" & input$filtro_pla_tree == "Todos") {
@@ -47,15 +47,14 @@ server <- function(input, output) {
       output$treeMap <- renderUI({
         d3tree2(treemap(base_expandida %>% 
                           filter(Actores == input$filtro_act_tree),
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Plazo", "Actores", "lab_est", "lab_ver"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
                         align.labels = list(
                           c("center", "center"), 
-                          c("right", "bottom"))
-        ),
-        rootname = "Acciones reportadas")
+                          c("right", "bottom"))),
+                rootname = "Acciones reportadas")
       })
       
     } else if(input$filtro_act_tree == "Todos" & input$filtro_pla_tree != "Todos") {
@@ -63,15 +62,14 @@ server <- function(input, output) {
       output$treeMap <- renderUI({
         d3tree2(treemap(base_expandida %>% 
                           filter(Plazo == input$filtro_pla_tree),
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Plazo", "Actores", "lab_est", "lab_ver"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
                         align.labels = list(
                           c("center", "center"), 
-                          c("right", "bottom"))
-        ),
-        rootname = "Acciones reportadas")
+                          c("right", "bottom"))),
+                rootname = "Acciones reportadas")
       })
       
     } else {
@@ -89,15 +87,14 @@ server <- function(input, output) {
         d3tree2(treemap(base_expandida %>% 
                           filter(Plazo == input$filtro_pla_tree) %>% 
                           filter(Actores == input$filtro_act_tree),
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Plazo", "Actores", "lab_est", "lab_ver"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
                         align.labels = list(
                           c("center", "center"), 
-                          c("right", "bottom"))
-        ),
-        rootname = "Acciones reportadas")
+                          c("right", "bottom"))),
+                rootname = "Acciones reportadas")
       })
       
     }

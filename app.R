@@ -12,10 +12,7 @@ library(treemap)
 library(d3treeR)
 library(spsComps)
 
-#Hola
 # cargar bases
-
-base_acciones <- read.xlsx("base_consulta.xlsx", 1)
 
 base_expandida <- read.xlsx("base_expandida.xlsx", 1) %>% 
   filter(contiene_accion == 1) %>% 
@@ -67,7 +64,7 @@ ui <- navbarPage("Tablero de Implementación - Consulta",
                             sidebarLayout(
                               sidebarPanel(
                                 width = 3,
-                                selectInput("filtro_act_tree", "Actores:", c("Todos", unique(base_acciones$Actores))),
+                                selectInput("filtro_act_tree", "Actores:", c("Todos", unique(base_expandida$Actores))),
                                 selectInput("filtro_pla_tree", "Plazos", c("Todos", "Corto", "Mediano", "Largo")),
                                 infoBtn2('notWorking') %>% 
                                   bsTooltip("La gráfica cuenta el número de acciones únicas reportadas por los actores, por lo que los totales pueden variar si el actor reportó la misma acción en diferentes líneas.",
