@@ -103,3 +103,39 @@ server <- function(input, output) {
 }
 
 shinyApp(ui, server)
+
+
+######### minimal example
+
+library(shiny)
+library(d3treeR)
+library(htmlwidgets)
+library(treemap)
+
+df <- data.frame(
+  level.a = c("1", "2", "3", "4", "1", "2"),
+  level.b = c("1.1", "2.1", "3.1", "4.1", "1.2", "2.2"),
+  value = c(1, 1, 1, 1, 1, 1),
+  details = "abc", "def", "ghs", "ers", "sas", "ert"
+)
+
+ui <- fluidPage(
+  d3tree2Output("tree")
+)
+
+server <- function(input, output) {
+  
+  output$tree <- renderD3tree2({
+    d3tree2(treemap(df,
+                    index = c("level.a", "level.b"),
+                    vSize = "value",
+                    type = "index",
+                    palette = "Set2"
+    ),
+    rootname = "Root")
+  })
+  
+}
+
+shinyApp(ui, server)
+
