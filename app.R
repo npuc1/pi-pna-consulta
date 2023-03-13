@@ -8,19 +8,29 @@ library(shinyjs)
 library(DT)
 library(spsComps)
 library(shinythemes)
-library(treemap)
+library(data.table)
 library(d3treeR)
-library(spsComps)
+library(treemap)
 
-# cargar bases
+base1 <- read.xlsx("base_expandida.xlsx", 1) 
+base2 <- read.xlsx("Ejes objetivos.xlsx", 1)
+mergedf <- merge(x = base1, y = base2, by = "No.Línea.de.Acción")
 
-base_expandida <- read.xlsx("base_expandida.xlsx", 1) %>% 
+mergedf <- mergedf %>% 
+  relocate(No.Línea.de.Acción, .after = No.Estrategia)
+
+
+base_acciones<- mergedf
+
+base_expandida <- mergedf %>% 
   filter(contiene_accion == 1) %>% 
   mutate(lab_est = str_c("Estrategia ", No.Estrategia)) # labels para treeMap
 
-base_reporte <- read.xlsx("base_expandida.xlsx", 1)
+base_reporte <- mergedf
 
 estrategias <- c("Todas", "1.1", "1.2", "2.1", "3.1", "3.2", "4.1", "4.2", "5.1", "6.1", "7.1", "7.2", "8.1", "9.1", "9.2", "10.1", "11.1", "11.2", "12.1", "12.2", "12.3", "13.1", "14.1", "15.1", "15.2", "16.1", "16.2", "17.1", "17.2", "18.1", "18.2", "19.1", "19.2", "19.3", "20.1", "20.2", "21.1", "22.1", "23.1", "23.2", "24.1", "24.2", "25.1", "25.2", "26.1", "27.1", "28.1", "29.1", "29.2", "30.1", "30.2", "30.3", "31.1", "31.2", "32.1", "33.1", "34.1", "35.1", "36.1", "36.2", "37.1", "37.2", "38.1", "39.1", "40.1")
+objetivos<-c("Todos", "1", "2", "3", "4", "5", "6","7", "8", "9", "10")
+ejes <- c("Todos","1", "2", "3", "4")
 
 # info buttons
 
@@ -44,17 +54,6 @@ infoBtn2 <- function(id) {
   )
 }
 
-
-# textos base
-
-txt1 <- "El "
-txt2 <- " de las "
-txt3 <- " instituciones vinculadas a la estrategia reportó por lo menos una acción asociada a esta. El "
-txt4 <- " reportó acciones en todas las líneas correspondientes a la estrategia que les correspondían."
-txtCond1 <- " De forma adicional a las instituciones que participan en el cumplimiento de esta estrategia, otras "
-txtCond2 <- " reportaron "
-txtCond3 <- " acciones adicionales."
-
 ui <- navbarPage("Tablero de Implementación - Consulta",
                  useShinyjs(),
                  tabPanel("Consulta gráfica",
@@ -64,11 +63,11 @@ ui <- navbarPage("Tablero de Implementación - Consulta",
                             sidebarLayout(
                               sidebarPanel(
                                 width = 3,
-                                selectInput("filtro_act_tree", "Actores:", c("Todos", unique(base_expandida$Actores))),
-                                selectInput("filtro_pla_tree", "Plazos", c("Todos", "Corto", "Mediano", "Largo")) #,
-                                # infoBtn2('notWorking') %>% 
-                                  # bsTooltip("La gráfica cuenta el número de acciones únicas reportadas por los actores, por lo que los totales pueden variar si el actor reportó la misma acción en diferentes líneas.",
-                                            # opacity = 0.7)
+                                selectInput("filtro_act_tree", "Actores:", c("Todos", sort(unique(base_acciones$Actores)))),
+                                selectInput("filtro_pla_tree", "Plazos", c("Todos", "Corto", "Mediano", "Largo")),
+                                infoBtn2('notWorking') %>% 
+                                  bsTooltip("La gráfica cuenta el número de acciones únicas reportadas por los actores, por lo que los totales pueden variar si el actor reportó la misma acción en diferentes líneas.",
+                                            opacity = 0.7)
                               ),
                               mainPanel(
                                 width = 9,
@@ -118,7 +117,7 @@ server <- function(input, output, session) {
       
       output$treeMap <- renderUI({
         d3tree2(treemap(base_expandida,
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Eje", "Actores", "lab_est", "No.Estrategia"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
@@ -132,9 +131,16 @@ server <- function(input, output, session) {
     } else if(input$filtro_act_tree != "Todos" & input$filtro_pla_tree == "Todos") {
       
       output$treeMap <- renderUI({
+        
+        validate(
+          need(nrow(base_expandida %>% 
+                      filter(Actores == input$filtro_act_tree)) > 0, 
+               paste(input$filtro_act_tree, "no reportó acciones."))
+        )
+        
         d3tree2(treemap(base_expandida %>% 
                           filter(Actores == input$filtro_act_tree),
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Eje", "Actores", "lab_est", "No.Estrategia"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
@@ -147,10 +153,11 @@ server <- function(input, output, session) {
       
     } else if(input$filtro_act_tree == "Todos" & input$filtro_pla_tree != "Todos") {
       
+      
       output$treeMap <- renderUI({
         d3tree2(treemap(base_expandida %>% 
                           filter(Plazo == input$filtro_pla_tree),
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Eje", "Actores", "lab_est", "No.Estrategia"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
@@ -176,7 +183,7 @@ server <- function(input, output, session) {
         d3tree2(treemap(base_expandida %>% 
                           filter(Plazo == input$filtro_pla_tree) %>% 
                           filter(Actores == input$filtro_act_tree),
-                        index = c("Plazo", "Actores", "lab_est", "No.Estrategia"),
+                        index = c("Eje", "Actores", "lab_est", "No.Estrategia"),
                         vSize = "contiene_accion",
                         type = "index",
                         palette = "Set2",
@@ -344,7 +351,7 @@ server <- function(input, output, session) {
               selection = 'none',
               escape = FALSE,
               options = list(language = list(url = "https://cdn.datatables.net/plug-ins/1.10.21/i18n/Spanish.json"),
-                             columnDefs = list(list(className = 'dt-center', targets = 2:6))))
+                             columnDefs = list(list(className = 'dt-center', targets = 0:6))))
   })
   
   # output tabla lista acciones
@@ -373,6 +380,11 @@ server <- function(input, output, session) {
     }
   })
   
+  base_expandida = rename(base_expandida, c(`Línea de acción`=Línea.de.Acción,
+                                            `Se coordina con`=Se.coordina.con,
+                                            `Acción reportada`=Acción.reportada,
+                                            `Fecha de inicio`=Fecha.de.inicio,
+                                            `Fecha de término`=Fecha.de.término))
   output$previewTable <- renderDataTable({
     previewData()
   }, options = list(pageLength = 5,
